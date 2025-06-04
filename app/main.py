@@ -16,14 +16,12 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = FastAPI(
     title="UE5 Logger API",
-    description="API для приёма данных о железе и краш-репортах из UE5",
+    description="API для приёма данных о железе, perf-телеметрии и крэшей из UE5",
     version="1.0.0"
 )
 
-# Настраиваем шаблоны Jinja2
 templates = Jinja2Templates(directory="app/templates")
 
-# CORS (разрешаем всё, для внутреннего использования)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,184 +30,192 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# При старте создаём таблицы
 @app.on_event("startup")
 async def startup():
     async with database.engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
 
-
-# --- Эндпойнты для Hardware --- #
+# --- HardwareSnapshot Endpoints --- #
 
 @app.post("/api/hardware", response_model=schemas.HardwareSnapshotResponse)
 async def post_hardware(hw: schemas.HardwareSnapshotCreate, db: AsyncSession = Depends(database.get_db)):
-    """
-    Принимает JSON с «снимком» железа, сохраняет в БД и возвращает объект в формате Pydantic.
-    """
     db_obj = await crud.create_hardware_snapshot(db, hw)
-    # Конвертируем SQLAlchemy-объект в dict, соответствующий HardwareSnapshotResponse
     return {
         "id": db_obj.id,
-        "playerId": db_obj.player_id,
+        "playerGUID": db_obj.player_guid,
         "timestamp": db_obj.timestamp,
         "cpu": {
-            "vendor": db_obj.cpu_vendor,
+            "brand": db_obj.cpu_brand,
             "physicalCores": db_obj.cpu_physical,
             "logicalCores": db_obj.cpu_logical
         },
         "memory": {
             "totalMB": db_obj.total_ram_mb,
-            "availableMB": db_obj.avail_ram_mb
+            "availableMB": db_obj.available_ram_mb
         },
         "gpu": {
             "name": db_obj.gpu_name,
-            "videoMemoryMB": db_obj.gpu_vram_mb
+            "vramMB": db_obj.gpu_vram_mb
         },
         "os": {
+            "name": db_obj.os_name,
             "version": db_obj.os_version,
-            "is64Bit": bool(db_obj.is_64bit)
+            "is64Bit": db_obj.is_64bit
         },
-        "locale": db_obj.locale
+        "rhi": db_obj.rhi
     }
-
 
 @app.get("/api/hardware", response_model=List[schemas.HardwareSnapshotResponse])
 async def get_hardware(db: AsyncSession = Depends(database.get_db)):
-    """
-    Возвращает список всех аппаратных снимков в формате Pydantic.
-    """
     items = await crud.get_hardware_snapshots(db)
     result = []
-    for db_obj in items:
+    for o in items:
         result.append({
-            "id": db_obj.id,
-            "playerId": db_obj.player_id,
-            "timestamp": db_obj.timestamp,
+            "id": o.id,
+            "playerGUID": o.player_guid,
+            "timestamp": o.timestamp,
             "cpu": {
-                "vendor": db_obj.cpu_vendor,
-                "physicalCores": db_obj.cpu_physical,
-                "logicalCores": db_obj.cpu_logical
+                "brand": o.cpu_brand,
+                "physicalCores": o.cpu_physical,
+                "logicalCores": o.cpu_logical
             },
             "memory": {
-                "totalMB": db_obj.total_ram_mb,
-                "availableMB": db_obj.avail_ram_mb
+                "totalMB": o.total_ram_mb,
+                "availableMB": o.available_ram_mb
             },
             "gpu": {
-                "name": db_obj.gpu_name,
-                "videoMemoryMB": db_obj.gpu_vram_mb
+                "name": o.gpu_name,
+                "vramMB": o.gpu_vram_mb
             },
             "os": {
-                "version": db_obj.os_version,
-                "is64Bit": bool(db_obj.is_64bit)
+                "name": o.os_name,
+                "version": o.os_version,
+                "is64Bit": o.is_64bit
             },
-            "locale": db_obj.locale
+            "rhi": o.rhi
         })
     return result
 
+# --- PerformanceTelemetry Endpoints --- #
 
-# --- Эндпойнты для Crash --- #
+@app.post("/api/performance", response_model=schemas.PerformanceResponse)
+async def post_performance(perf: schemas.PerformanceCreate, db: AsyncSession = Depends(database.get_db)):
+    db_obj = await crud.create_performance(db, perf)
+    return {
+        "id": db_obj.id,
+        "playerGUID": db_obj.player_guid,
+        "timestamp": db_obj.timestamp,
+        "cpuLoadPercent": db_obj.cpu_load_percent,
+        "gpuLoadPercent": db_obj.gpu_load_percent,
+        "fps": db_obj.fps,
+        "snapshot_id": db_obj.snapshot_id
+    }
+
+@app.get("/api/performance", response_model=List[schemas.PerformanceResponse])
+async def get_performance(db: AsyncSession = Depends(database.get_db)):
+    items = await crud.get_performances(db)
+    result = []
+    for o in items:
+        result.append({
+            "id": o.id,
+            "playerGUID": o.player_guid,
+            "timestamp": o.timestamp,
+            "cpuLoadPercent": o.cpu_load_percent,
+            "gpuLoadPercent": o.gpu_load_percent,
+            "fps": o.fps,
+            "snapshot_id": o.snapshot_id
+        })
+    return result
+
+# --- CrashReport Endpoints --- #
 
 @app.post("/api/crash", response_model=schemas.CrashReportResponse)
 async def post_crash(cr: schemas.CrashReportCreate, db: AsyncSession = Depends(database.get_db)):
-    """
-    Принимает JSON с данными о вылете, сохраняет в БД и возвращает объект в формате Pydantic.
-    """
     db_obj = await crud.create_crash_report(db, cr)
     return {
         "id": db_obj.id,
-        "playerId": db_obj.player_id,
+        "playerGUID": db_obj.player_guid,
         "timestamp": db_obj.timestamp,
-        "hardwareId": db_obj.hardware_id,
         "crashType": db_obj.crash_type,
-        "crashDescription": db_obj.crash_description,
-        "dumpFile": db_obj.dump_file,
-        "logText": db_obj.log_text
+        "description": db_obj.description,
+        "logText": db_obj.log_text,
+        "dumpBase64": db_obj.dump_base64
     }
-
 
 @app.get("/api/crashes", response_model=List[schemas.CrashReportResponse])
 async def get_crashes(db: AsyncSession = Depends(database.get_db)):
-    """
-    Возвращает список всех отчётов о крашах.
-    """
     items = await crud.get_crash_reports(db)
     result = []
-    for db_obj in items:
+    for o in items:
         result.append({
-            "id": db_obj.id,
-            "playerId": db_obj.player_id,
-            "timestamp": db_obj.timestamp,
-            "hardwareId": db_obj.hardware_id,
-            "crashType": db_obj.crash_type,
-            "crashDescription": db_obj.crash_description,
-            "dumpFile": db_obj.dump_file,
-            "logText": db_obj.log_text
+            "id": o.id,
+            "playerGUID": o.player_guid,
+            "timestamp": o.timestamp,
+            "crashType": o.crash_type,
+            "description": o.description,
+            "logText": o.log_text,
+            "dumpBase64": o.dump_base64
         })
     return result
 
-
-# --- HTML-маршруты (Jinja2) --- #
+# --- HTML Routes (Jinja2) --- #
 
 @app.get("/view/hardware", response_class=HTMLResponse)
 async def view_hardware(request: Request, db: AsyncSession = Depends(database.get_db)):
     items = await crud.get_hardware_snapshots(db)
     hw_list = []
-    for h in items:
+    for o in items:
         hw_list.append({
-            "id": h.id,
-            "playerId": h.player_id,
-            "timestamp": h.timestamp,
+            "id": o.id,
+            "playerGUID": o.player_guid,
+            "timestamp": o.timestamp,
             "cpu": {
-                "vendor": h.cpu_vendor,
-                "physicalCores": h.cpu_physical,
-                "logicalCores": h.cpu_logical
+                "brand": o.cpu_brand,
+                "physicalCores": o.cpu_physical,
+                "logicalCores": o.cpu_logical
             },
             "memory": {
-                "totalMB": h.total_ram_mb,
-                "availableMB": h.avail_ram_mb
+                "totalMB": o.total_ram_mb,
+                "availableMB": o.available_ram_mb
             },
             "gpu": {
-                "name": h.gpu_name,
-                "videoMemoryMB": h.gpu_vram_mb
+                "name": o.gpu_name,
+                "vramMB": o.gpu_vram_mb
             },
             "os": {
-                "version": h.os_version,
-                "is64Bit": bool(h.is_64bit)
+                "name": o.os_name,
+                "version": o.os_version,
+                "is64Bit": o.is_64bit
             },
-            "locale": h.locale
+            "rhi": o.rhi
         })
     return templates.TemplateResponse("hardware_list.html", {"request": request, "items": hw_list})
-
 
 @app.get("/view/crashes", response_class=HTMLResponse)
 async def view_crashes(request: Request, db: AsyncSession = Depends(database.get_db)):
     items = await crud.get_crash_reports(db)
     cr_list = []
-    for c in items:
+    for o in items:
         cr_list.append({
-            "id": c.id,
-            "playerId": c.player_id,
-            "timestamp": c.timestamp,
-            "crashType": c.crash_type,
-            "crashDescription": c.crash_description,
-            "dumpFile": c.dump_file or "",
-            "logText": c.log_text or ""
+            "id": o.id,
+            "playerGUID": o.player_guid,
+            "timestamp": o.timestamp,
+            "crashType": o.crash_type,
+            "description": o.description or "",
+            "logText": (o.log_text[:100] + "...") if o.log_text else "-",
+            "hasDump": bool(o.dump_base64)
         })
     return templates.TemplateResponse("crash_list.html", {"request": request, "items": cr_list})
 
+# --- (Опционально) upload dump route --- #
 
-# --- (Опционально) загрузка дампа файла --- #
 @app.post("/api/upload-dump")
 async def upload_dump(file: UploadFile = File(...)):
-    """
-    Пример приёма бинарного файла (дампа). Сохраняем в UPLOAD_DIR и возвращаем путь.
-    """
     file_path = os.path.join(UPLOAD_DIR, file.filename)
     async with aiofiles.open(file_path, "wb") as out_file:
         content = await file.read()
         await out_file.write(content)
     return {"filename": file.filename, "path": file_path}
-
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=False)

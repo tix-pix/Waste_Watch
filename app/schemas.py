@@ -1,11 +1,12 @@
 # app/schemas.py
-from typing import Optional
 from datetime import datetime
+from typing import Optional, List
 from pydantic import BaseModel
 
-# --- аппаратный «снимок» ---
+# --- Схемы для HardwareSnapshot --- #
+
 class CPUInfo(BaseModel):
-    vendor: str
+    brand: str
     physicalCores: int
     logicalCores: int
 
@@ -15,53 +16,74 @@ class MemoryInfo(BaseModel):
 
 class GPUInfo(BaseModel):
     name: str
-    videoMemoryMB: int
+    vramMB: int
 
 class OSInfo(BaseModel):
+    name: str
     version: str
     is64Bit: bool
 
 class HardwareSnapshotCreate(BaseModel):
-    playerId: str
+    playerGUID: str
     timestamp: datetime
     cpu: CPUInfo
     memory: MemoryInfo
     gpu: GPUInfo
     os: OSInfo
-    locale: Optional[str] = None
+    rhi: str
 
 class HardwareSnapshotResponse(BaseModel):
     id: int
-    playerId: str
+    playerGUID: str
     timestamp: datetime
     cpu: CPUInfo
     memory: MemoryInfo
     gpu: GPUInfo
     os: OSInfo
-    locale: Optional[str]
+    rhi: str
 
     class Config:
         orm_mode = True
 
-# --- схема для крешей ---
-class CrashReportCreate(BaseModel):
-    playerId: str
+# --- Схемы для PerformanceTelemetry --- #
+
+class PerformanceCreate(BaseModel):
+    playerGUID: str
     timestamp: datetime
-    hardwareId: Optional[int] = None
+    cpuLoadPercent: float
+    gpuLoadPercent: int
+    fps: float
+
+class PerformanceResponse(BaseModel):
+    id: int
+    playerGUID: str
+    timestamp: datetime
+    cpuLoadPercent: float
+    gpuLoadPercent: int
+    fps: float
+    snapshot_id: Optional[int] = None
+
+    class Config:
+        orm_mode = True
+
+# --- Схемы для CrashReport --- #
+
+class CrashReportCreate(BaseModel):
+    playerGUID: str
+    timestamp: datetime
     crashType: str
-    crashDescription: Optional[str] = ""
-    dumpFile: Optional[str] = None   # можно передавать фейковый путь или URL
+    description: Optional[str] = None
     logText: Optional[str] = None
+    dumpBase64: Optional[str] = None
 
 class CrashReportResponse(BaseModel):
     id: int
-    playerId: str
+    playerGUID: str
     timestamp: datetime
-    hardwareId: Optional[int]
     crashType: str
-    crashDescription: Optional[str]
-    dumpFile: Optional[str]
-    logText: Optional[str]
+    description: Optional[str] = None
+    logText: Optional[str] = None
+    dumpBase64: Optional[str] = None
 
     class Config:
         orm_mode = True

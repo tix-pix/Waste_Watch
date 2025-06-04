@@ -1,24 +1,15 @@
 # app/database.py
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Путь к файлу SQLite (он появится рядом с этим скриптом)
 DATABASE_URL = "sqlite+aiosqlite:///./ue5_logger.db"
 
-# Асинхронный движок
-engine = create_async_engine(
-    DATABASE_URL, echo=False, future=True
-)
-
-# Сессии для CRUD
+engine = create_async_engine(DATABASE_URL, echo=False, future=True)
 AsyncSessionLocal = sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False
+    bind=engine, class_=AsyncSession, expire_on_commit=False
 )
+Base = declarative_base()
 
-
-# Функция-утилита, чтобы получать сессию в эндпоинтах
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
