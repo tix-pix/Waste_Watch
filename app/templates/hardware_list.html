@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Снимки железа</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f4f4f4; }
+  </style>
+</head>
+<body>
+  <h1>Все hardware snapshots</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Player GUID</th>
+        <th>Timestamp (UTC)</th>
+        <th>CPU (бренд / физ / лог)</th>
+        <th>RAM (total / available)</th>
+        <th>GPU (имя / VRAM)</th>
+        <th>OS (имя / версия / 64-bit)</th>
+        <th>RHI</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for hw in items %}
+      <tr>
+        <td>{{ hw.id }}</td>
+        <td>{{ hw.playerGUID }}</td>
+        <td>{{ hw.timestamp }}</td>
+        <td>{{ hw.cpu.brand }} / {{ hw.cpu.physicalCores }}+{{ hw.cpu.logicalCores }}</td>
+        <td>{{ hw.memory.totalMB }} / {{ hw.memory.availableMB }}</td>
+        <td>{{ hw.gpu.name }} / {{ hw.gpu.vramMB }}MB</td>
+        <td>{{ hw.os.name }} / {{ hw.os.version }} / {{ "64" if hw.os.is64Bit else "32" }}</td>
+        <td>{{ hw.rhi }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>
