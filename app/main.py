@@ -1,27 +1,32 @@
 # app/main.py
+
 import os
 import uvicorn
-from fastapi import FastAPI, Depends, HTTPException, Request, UploadFile, File
+from fastapi import FastAPI, Depends, Request
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import models, schemas, crud, database
 
-# Папка для сохранения дампов (если понадобится)
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/srv/ue5-logger/uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# ------------------------- Инициализация приложения ------------------------- #
 
 app = FastAPI(
-    title="UE5 Logger API",
-    description="API для приёма данных о железе, perf-телеметрии и крэшей из UE5",
+    title="WasteWatch Dashboard",
+    description="Dashboard для аналитики UE5-логов",
     version="1.0.0"
 )
 
+# Шаблоны Jinja2 (будем хранить dashboard.html в папке templates)
 templates = Jinja2Templates(directory="app/templates")
 
+# (опционально) если у вас будут отдельные css/js файлы, подключите их так:
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# CORS (если понадобится с других доменов)
+from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -30,12 +35,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Создание таблиц при старте
 @app.on_event("startup")
-async def startup():
+async def on_startup():
     async with database.engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
 
-# --- HardwareSnapshot Endpoints --- #
+# ------------------------- API: HardwareSnapshot ------------------------- #
 
 @app.post("/api/hardware", response_model=schemas.HardwareSnapshotResponse)
 async def post_hardware(hw: schemas.HardwareSnapshotCreate, db: AsyncSession = Depends(database.get_db)):
@@ -96,7 +102,7 @@ async def get_hardware(db: AsyncSession = Depends(database.get_db)):
         })
     return result
 
-# --- PerformanceTelemetry Endpoints --- #
+# ------------------------- API: PerformanceTelemetry ------------------------- #
 
 @app.post("/api/performance", response_model=schemas.PerformanceResponse)
 async def post_performance(perf: schemas.PerformanceCreate, db: AsyncSession = Depends(database.get_db)):
@@ -127,7 +133,7 @@ async def get_performance(db: AsyncSession = Depends(database.get_db)):
         })
     return result
 
-# --- CrashReport Endpoints --- #
+# ------------------------- API: CrashReport ------------------------- #
 
 @app.post("/api/crash", response_model=schemas.CrashReportResponse)
 async def post_crash(cr: schemas.CrashReportCreate, db: AsyncSession = Depends(database.get_db)):
@@ -158,64 +164,17 @@ async def get_crashes(db: AsyncSession = Depends(database.get_db)):
         })
     return result
 
-# --- HTML Routes (Jinja2) --- #
+# ------------------------- Dashboard: отдача HTML ------------------------- #
 
-@app.get("/view/hardware", response_class=HTMLResponse)
-async def view_hardware(request: Request, db: AsyncSession = Depends(database.get_db)):
-    items = await crud.get_hardware_snapshots(db)
-    hw_list = []
-    for o in items:
-        hw_list.append({
-            "id": o.id,
-            "playerGUID": o.player_guid,
-            "timestamp": o.timestamp,
-            "cpu": {
-                "brand": o.cpu_brand,
-                "physicalCores": o.cpu_physical,
-                "logicalCores": o.cpu_logical
-            },
-            "memory": {
-                "totalMB": o.total_ram_mb,
-                "availableMB": o.available_ram_mb
-            },
-            "gpu": {
-                "name": o.gpu_name,
-                "vramMB": o.gpu_vram_mb
-            },
-            "os": {
-                "name": o.os_name,
-                "version": o.os_version,
-                "is64Bit": o.is_64bit
-            },
-            "rhi": o.rhi
-        })
-    return templates.TemplateResponse("hardware_list.html", {"request": request, "items": hw_list})
+@app.get("/", response_class=HTMLResponse)
+async def get_dashboard(request: Request):
+    """
+    Просто рендерим dashboard.html, в котором уже подключён JS,
+    делающий fetch('/api/...') к нашим эндпоинтам.
+    """
+    return templates.TemplateResponse("dashboard.html", {"request": request})
 
-@app.get("/view/crashes", response_class=HTMLResponse)
-async def view_crashes(request: Request, db: AsyncSession = Depends(database.get_db)):
-    items = await crud.get_crash_reports(db)
-    cr_list = []
-    for o in items:
-        cr_list.append({
-            "id": o.id,
-            "playerGUID": o.player_guid,
-            "timestamp": o.timestamp,
-            "crashType": o.crash_type,
-            "description": o.description or "",
-            "logText": (o.log_text[:100] + "...") if o.log_text else "-",
-            "hasDump": bool(o.dump_base64)
-        })
-    return templates.TemplateResponse("crash_list.html", {"request": request, "items": cr_list})
-
-# --- (Опционально) upload dump route --- #
-
-@app.post("/api/upload-dump")
-async def upload_dump(file: UploadFile = File(...)):
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
-    async with aiofiles.open(file_path, "wb") as out_file:
-        content = await file.read()
-        await out_file.write(content)
-    return {"filename": file.filename, "path": file_path}
+# ------------------------- Запуск Uvicorn ------------------------- #
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=False)
