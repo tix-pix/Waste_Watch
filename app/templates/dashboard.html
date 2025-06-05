@@ -6,9 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WasteWatch Dashboard</title>
 
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <style>
     /* Сброс базовых стилей */
     * {
@@ -202,6 +199,47 @@
       font-size: 18px;
       font-weight: 600;
       margin-bottom: 20px;
+    }
+
+    /* ------------- Canvas Fixed Height ------------- */
+    canvas {
+      width: 100% !important;
+      height: 300px !important;
+    }
+
+    /* ---------------- Секция CPU распределения ---------------- */
+    .cpu-distribution {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    .cpu-chart-wrapper, .cpu-table-wrapper {
+      background: #111111;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 25px;
+      flex: 1;
+    }
+
+    .cpu-table-wrapper table {
+      width: 100%;
+      border-collapse: collapse;
+      color: #fff;
+    }
+
+    .cpu-table-wrapper th, .cpu-table-wrapper td {
+      border-bottom: 1px solid #333;
+      padding: 8px;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    .cpu-table-wrapper th {
+      color: #888;
+      text-transform: uppercase;
+      font-weight: 500;
+      font-size: 12px;
     }
 
     /* ---------------- Список игроков (горизонтальный) ---------------- */
@@ -431,6 +469,9 @@
     </div>
   </div>
 
+  <!-- Chart.js подключено внизу с defer, чтобы не блокировать рендер -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+
   <script>
     class WasteWatchDashboard {
       constructor() {
@@ -440,9 +481,7 @@
           performance: [],
           crashes: []
         };
-        this.grouped = {
-          byPlayer: {}  // будет { playerGUID: { hardware: {...}, performance: [...], crashes: [...] } }
-        };
+        this.grouped = { byPlayer: {} };
         this.init();
       }
 
@@ -484,7 +523,6 @@
       }
 
       generateTestData() {
-        // Для разработки – если сервер недоступен
         this.data.hardware = [
           {
             id: 1,
@@ -548,19 +586,11 @@
 
       groupDataByPlayer() {
         this.grouped.byPlayer = {};
-        // Сначала пройдём по hardware
         this.data.hardware.forEach(hw => {
           if (!this.grouped.byPlayer[hw.playerGUID]) {
-            this.grouped.byPlayer[hw.playerGUID] = {
-              hardware: hw,
-              performance: [],
-              crashes: []
-            };
-          } else {
-            // Если несколько hardware-снимков, можно обновить timestamp или оставить первый
+            this.grouped.byPlayer[hw.playerGUID] = { hardware: hw, performance: [], crashes: [] };
           }
         });
-        // Затем performance
         this.data.performance.forEach(perf => {
           const key = perf.playerGUID;
           if (!this.grouped.byPlayer[key]) {
@@ -568,7 +598,6 @@
           }
           this.grouped.byPlayer[key].performance.push(perf);
         });
-        // Затем crashes
         this.data.crashes.forEach(cr => {
           const key = cr.playerGUID;
           if (!this.grouped.byPlayer[key]) {
@@ -576,19 +605,14 @@
           }
           this.grouped.byPlayer[key].crashes.push(cr);
         });
-
-        // Отсортируем performance каждого игрока по возрастанию timestamp
         Object.values(this.grouped.byPlayer).forEach(playerData => {
           playerData.performance.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         });
       }
 
       switchSection(section) {
-        document.querySelectorAll('.nav-item').forEach(item => {
-          item.classList.remove('active');
-        });
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
         document.querySelector(`[data-section="${section}"]`).classList.add('active');
-
         this.currentSection = section;
         this.renderSection(section);
       }
@@ -599,13 +623,11 @@
           players: { title: 'Список игроков', subtitle: 'Горизонтальный список с характеристиками' },
           crashes: { title: 'Краш дампы', subtitle: 'Отчёты о сбоях и ошибках' }
         };
-
         document.getElementById('pageTitle').textContent = titles[section].title;
         document.getElementById('pageSubtitle').textContent = titles[section].subtitle;
 
         const contentBody = document.getElementById('contentBody');
-        contentBody.innerHTML = ''; // очищаем
-
+        contentBody.innerHTML = '';
         switch (section) {
           case 'overview':
             this.renderOverview(contentBody);
@@ -621,107 +643,95 @@
 
       /* ========== 1. ОБЩИЙ АНАЛИЗ ========== */
       renderOverview(container) {
-        // Рассчитываем медианы FPS, cpuLoadPercent, gpuLoadPercent
-        const allFPS = this.data.performance.map(p => p.fps).sort((a,b)=>a-b);
-        const allCPU = this.data.performance.map(p => p.cpuLoadPercent).sort((a,b)=>a-b);
-        const allGPU = this.data.performance.map(p => p.gpuLoadPercent).sort((a,b)=>a-b);
+        // Собираем все FPS, CPU, GPU
+        const perfDates = this.data.performance.map(p => ({ ...p, t: new Date(p.timestamp) }));
+        const fpsArr = this.data.performance.map(p => p.fps).sort((a, b) => a - b);
+        const cpuArr = this.data.performance.map(p => p.cpuLoadPercent).sort((a, b) => a - b);
+        const gpuArr = this.data.performance.map(p => p.gpuLoadPercent).sort((a, b) => a - b);
+        const median = arr => (!arr.length ? 0 : arr.length % 2 ? arr[Math.floor(arr.length / 2)] : (arr[arr.length/2 - 1] + arr[arr.length/2]) / 2);
 
-        const median = arr => {
-          if (!arr.length) return 0;
-          const mid = Math.floor(arr.length / 2);
-          return arr.length % 2 !== 0 ? arr[mid] : (arr[mid-1] + arr[mid]) / 2;
-        };
+        const fpsMed = median(fpsArr), cpuMed = median(cpuArr), gpuMed = median(gpuArr);
 
-        const fpsMed = median(allFPS);
-        const cpuMed = median(allCPU);
-        const gpuMed = median(allGPU);
-
-        // Процент изменения за последнюю неделю (кладём в переменные, реальное сравнение при наличии данных)
+        // Вычисляем изменения за неделю
         const now = new Date();
         const weekMs = 7 * 24 * 3600 * 1000;
-        // Разбиваем perfs на те, что за последнюю неделю и за неделю до того
-        const perfDates = this.data.performance.map(p => ({...p, t: new Date(p.timestamp)}));
         const lastWeek = perfDates.filter(p => now - p.t <= weekMs);
-        const prevWeek = perfDates.filter(p => now - p.t > weekMs && now - p.t <= 2*weekMs);
-        const avgOf = arr => arr.length ? arr.reduce((sum, x) => sum + x, 0) / arr.length : 0;
+        const prevWeek = perfDates.filter(p => now - p.t > weekMs && now - p.t <= 2 * weekMs);
+        const avgOf = arr => (arr.length ? arr.reduce((s, x) => s + x, 0) / arr.length : 0);
 
-        const fpsLast = avgOf(lastWeek.map(p=>p.fps)), fpsPrev = avgOf(prevWeek.map(p=>p.fps));
-        const cpuLast = avgOf(lastWeek.map(p=>p.cpuLoadPercent)), cpuPrev = avgOf(prevWeek.map(p=>p.cpuLoadPercent));
-        const gpuLast = avgOf(lastWeek.map(p=>p.gpuLoadPercent)), gpuPrev = avgOf(prevWeek.map(p=>p.gpuLoadPercent));
-
-        const pctChange = (newV, oldV) => oldV ? (((newV - oldV) / oldV) * 100).toFixed(1) : 'N/A';
+        const fpsLast = avgOf(lastWeek.map(p => p.fps)), fpsPrev = avgOf(prevWeek.map(p => p.fps));
+        const cpuLast = avgOf(lastWeek.map(p => p.cpuLoadPercent)), cpuPrev = avgOf(prevWeek.map(p => p.cpuLoadPercent));
+        const gpuLast = avgOf(lastWeek.map(p => p.gpuLoadPercent)), gpuPrev = avgOf(prevWeek.map(p => p.gpuLoadPercent));
+        const pctChange = (newV, oldV) => oldV ? (((newV - oldV) / oldV) * 100).toFixed(1) : '0';
 
         const fpsChange = pctChange(fpsLast, fpsPrev);
         const cpuChange = pctChange(cpuLast, cpuPrev);
         const gpuChange = pctChange(gpuLast, gpuPrev);
 
-        // Считаем общее количество игроков и крашей
         const totalPlayers = Object.keys(this.grouped.byPlayer).length;
         const totalCrashes = this.data.crashes.length;
 
-        // Создаём HTML для stat-карт
+        // stat-карты
         const statsHtml = `
           <div class="stats-grid">
             <div class="stat-card">
               <div class="stat-label">Всего игроков</div>
               <div class="stat-value">${totalPlayers}</div>
-              <div class="stat-change">за неделю: N/A</div>
+              <div class="stat-change">за неделю: 0%</div>
             </div>
             <div class="stat-card">
               <div class="stat-label">Медианный FPS</div>
               <div class="stat-value">${fpsMed.toFixed(1)}</div>
-              <div class="stat-change">${fpsChange !== 'N/A' ? (fpsChange > 0 ? '+'+fpsChange : fpsChange) + '%' : 'N/A'}</div>
+              <div class="stat-change">${fpsChange > 0 ? '+' + fpsChange : fpsChange}%</div>
             </div>
             <div class="stat-card">
               <div class="stat-label">Медианная нагрузка CPU</div>
               <div class="stat-value">${cpuMed.toFixed(1)}%</div>
-              <div class="stat-change">${cpuChange !== 'N/A' ? (cpuChange > 0 ? '+'+cpuChange : cpuChange) + '%' : 'N/A'}</div>
+              <div class="stat-change">${cpuChange > 0 ? '+' + cpuChange : cpuChange}%</div>
             </div>
             <div class="stat-card">
               <div class="stat-label">Медианная нагрузка GPU</div>
               <div class="stat-value">${gpuMed.toFixed(1)}%</div>
-              <div class="stat-change">${gpuChange !== 'N/A' ? (gpuChange > 0 ? '+'+gpuChange : gpuChange) + '%' : 'N/A'}</div>
+              <div class="stat-change">${gpuChange > 0 ? '+' + gpuChange : gpuChange}%</div>
             </div>
             <div class="stat-card">
               <div class="stat-label">Всего крашей</div>
               <div class="stat-value">${totalCrashes}</div>
-              <div class="stat-change" style="color: #ef4444;">за неделю: N/A</div>
+              <div class="stat-change" style="color: #ef4444;">за неделю: 0%</div>
             </div>
           </div>
         `;
         container.insertAdjacentHTML('beforeend', statsHtml);
 
-        // График «медианный FPS последних 7 дней»
+        // График медианного FPS по дням
         const chartContainer1 = document.createElement('div');
         chartContainer1.className = 'chart-container';
         chartContainer1.innerHTML = `
           <div class="chart-title">Медианный FPS по дням (последние 7 дней)</div>
-          <canvas id="fpsMedianChart" height="200"></canvas>
+          <canvas id="fpsMedianChart"></canvas>
         `;
         container.append(chartContainer1);
 
-        // Создаём данные для графика по дням
         const days = [];
-        const medianPerDay = [];
+        const medPerDay = [];
         for (let i = 6; i >= 0; i--) {
-          const day = new Date(now.getTime() - i * 24 * 3600 * 1000);
-          const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
-          const dayEnd = new Date(dayStart.getTime() + 24*3600*1000);
-          const perfsDay = perfDates.filter(p => p.t >= dayStart && p.t < dayEnd).map(p=>p.fps).sort((a,b)=>a-b);
-          days.push(dayStart.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }));
-          medianPerDay.push(median(perfsDay));
+          const d = new Date(now.getTime() - i * 24 * 3600 * 1000);
+          const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+          const end = new Date(start.getTime() + 24 * 3600 * 1000);
+          const arrDay = perfDates.filter(p => p.t >= start && p.t < end).map(p => p.fps).sort((a, b) => a - b);
+          days.push(start.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }));
+          medPerDay.push(median(arrDay));
         }
 
-        // Рисуем график
         new Chart(document.getElementById('fpsMedianChart'), {
           type: 'line',
           data: {
             labels: days,
             datasets: [{
-              label: 'Медианный FPS',
-              data: medianPerDay,
+              label: 'FPS',
+              data: medPerDay,
               borderColor: '#4ade80',
-              backgroundColor: 'rgba(74, 222, 128, 0.2)',
+              backgroundColor: 'rgba(74,222,128,0.2)',
               tension: 0.3,
               pointRadius: 3,
               pointBackgroundColor: '#4ade80'
@@ -732,14 +742,11 @@
               x: { ticks: { color: '#ccc' }, grid: { color: 'transparent' } },
               y: { ticks: { color: '#ccc' }, grid: { color: '#333' } }
             },
-            plugins: {
-              legend: { labels: { color: '#eee' } }
-            }
+            plugins: { legend: { labels: { color: '#eee' } } }
           }
         });
 
-        // График распределения «медианных» железа (GPU)
-        // Например, считаем, сколько у кого GPU разных моделей
+        // Распределение GPU
         const gpuCounts = {};
         Object.values(this.grouped.byPlayer).forEach(pData => {
           if (pData.hardware && pData.hardware.gpu) {
@@ -754,7 +761,7 @@
         chartContainer2.className = 'chart-container';
         chartContainer2.innerHTML = `
           <div class="chart-title">Распределение GPU среди игроков</div>
-          <canvas id="gpuDistributionChart" height="200"></canvas>
+          <canvas id="gpuDistributionChart"></canvas>
         `;
         container.append(chartContainer2);
 
@@ -768,13 +775,68 @@
             }]
           },
           options: {
-            plugins: {
-              legend: { labels: { color: '#eee' } }
-            }
+            plugins: { legend: { labels: { color: '#eee' } } }
+          }
+        });
+
+        // Распределение CPU
+        const cpuCounts = {};
+        Object.values(this.grouped.byPlayer).forEach(pData => {
+          if (pData.hardware && pData.hardware.cpu) {
+            const brand = pData.hardware.cpu.brand;
+            cpuCounts[brand] = (cpuCounts[brand] || 0) + 1;
+          }
+        });
+        const cpuLabels = Object.keys(cpuCounts);
+        const cpuValues = Object.values(cpuCounts);
+
+        // Контейнер для диаграммы и таблицы CPU
+        const cpuWrapper = document.createElement('div');
+        cpuWrapper.className = 'cpu-distribution';
+
+        // CPU Chart
+        const cpuChartDiv = document.createElement('div');
+        cpuChartDiv.className = 'cpu-chart-wrapper';
+        cpuChartDiv.innerHTML = `
+          <div class="chart-title">Распределение CPU среди игроков</div>
+          <canvas id="cpuDistributionChart"></canvas>
+        `;
+        cpuWrapper.append(cpuChartDiv);
+
+        // CPU Table
+        const cpuTableDiv = document.createElement('div');
+        cpuTableDiv.className = 'cpu-table-wrapper';
+        let tableHtml = `
+          <div class="chart-title">Таблица распределения CPU</div>
+          <table>
+            <thead>
+              <tr><th>CPU</th><th>Количество игроков</th></tr>
+            </thead>
+            <tbody>
+        `;
+        cpuLabels.forEach((brand, idx) => {
+          tableHtml += `<tr><td>${brand}</td><td>${cpuValues[idx]}</td></tr>`;
+        });
+        tableHtml += `</tbody></table>`;
+        cpuTableDiv.innerHTML = tableHtml;
+        cpuWrapper.append(cpuTableDiv);
+
+        container.append(cpuWrapper);
+
+        new Chart(document.getElementById('cpuDistributionChart'), {
+          type: 'pie',
+          data: {
+            labels: cpuLabels,
+            datasets: [{
+              data: cpuValues,
+              backgroundColor: ['#3b82f6', '#ef4444', '#4ade80', '#facc15', '#a855f7']
+            }]
+          },
+          options: {
+            plugins: { legend: { labels: { color: '#eee' } } }
           }
         });
       }
-
 
       /* ========== 2. Список игроков ========== */
       renderPlayers(container) {
@@ -784,11 +846,10 @@
         container.append(playerListWrapper);
 
         const playerListDiv = document.getElementById('playerList');
-        playerListDiv.innerHTML = ''; // очистка
+        playerListDiv.innerHTML = '';
 
         Object.entries(this.grouped.byPlayer).forEach(([guid, pData]) => {
           const hw = pData.hardware || {};
-          // первые 2 символа GUID как аватар
           const initials = guid.substring(0, 2).toUpperCase();
 
           const card = document.createElement('div');
@@ -820,7 +881,6 @@
         container.append(detailsPlaceholder);
       }
 
-
       /* ========== 3. Краш дампы ========== */
       renderCrashes(container) {
         const crashListDiv = document.createElement('div');
@@ -848,13 +908,12 @@
         });
       }
 
-
       /* ========== 4. Детали игрока ========== */
       showPlayerDetails(playerGUID) {
         const pData = this.grouped.byPlayer[playerGUID];
         if (!pData) return;
         const container = document.getElementById('playerDetailsContainer');
-        container.innerHTML = ''; // очищаем
+        container.innerHTML = '';
 
         // Заголовок
         const header = document.createElement('div');
@@ -862,7 +921,7 @@
         header.innerHTML = `<h2>Детали игрока ${playerGUID}</h2>`;
         container.append(header);
 
-        // 4.1 Общая информация о железе
+        // 4.1 Спецификации ПК
         const hw = pData.hardware;
         if (hw) {
           const infoDiv = document.createElement('div');
@@ -870,7 +929,7 @@
           infoDiv.innerHTML = `
             <div class="section-title">Спецификации ПК</div>
             <div><strong>CPU:</strong> ${hw.cpu.brand} (${hw.cpu.physicalCores}/${hw.cpu.logicalCores})</div>
-            <div><strong>RAM:</strong> ${(hw.memory.totalMB/1024).toFixed(1)} GB</div>
+            <div><strong>RAM:</strong> ${(hw.memory.totalMB / 1024).toFixed(1)} GB</div>
             <div><strong>GPU:</strong> ${hw.gpu.name} (${hw.gpu.vramMB} MB VRAM)</div>
             <div><strong>OS:</strong> ${hw.os.name} ${hw.os.version}, ${hw.os.is64Bit ? '64-bit' : '32-bit'}</div>
             <div><strong>RHI:</strong> ${hw.rhi}</div>
@@ -878,14 +937,14 @@
           container.append(infoDiv);
         }
 
-        // 4.2 График производительности по времени (FPS/CPU/GPU)
+        // 4.2 График производительности
         const perfArr = pData.performance;
         if (perfArr.length) {
           const chartSection = document.createElement('div');
           chartSection.className = 'player-details';
           chartSection.innerHTML = `
             <div class="section-title">Производительность во времени</div>
-            <canvas id="playerPerfChart" height="200"></canvas>
+            <canvas id="playerPerfChart"></canvas>
           `;
           container.append(chartSection);
 
@@ -953,7 +1012,7 @@
           container.insertAdjacentHTML('beforeend', '<div class="chart-placeholder">Нет данных производительности</div>');
         }
 
-        // 4.3 Список крашей у этого игрока
+        // 4.3 Краш-репорты игрока
         const crashes = pData.crashes;
         const crashSection = document.createElement('div');
         crashSection.className = 'player-details';
@@ -979,7 +1038,6 @@
       }
 
       showCrashDetails(crash) {
-        // Пока просто alert, если нужно – можно сделать модальное окно
         alert(`Краш игрока ${crash.playerGUID}:\nТип: ${crash.crashType}\nВремя: ${new Date(crash.timestamp).toLocaleString('ru-RU')}\nОписание: ${crash.description || 'Нет описания'}`);
       }
     }
