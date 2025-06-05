@@ -4,14 +4,12 @@ import os
 import uvicorn
 from fastapi import FastAPI, Depends, Request
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import models, schemas, crud, database
-
-# ------------------------- Инициализация приложения ------------------------- #
 
 app = FastAPI(
     title="WasteWatch Dashboard",
@@ -19,14 +17,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Шаблоны Jinja2 (будем хранить dashboard.html в папке templates)
 templates = Jinja2Templates(directory="app/templates")
 
-# (опционально) если у вас будут отдельные css/js файлы, подключите их так:
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+# Убираем строчку, монтировавшую несуществующую папку static:
+# app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# CORS (если понадобится с других доменов)
-from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -35,13 +30,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Создание таблиц при старте
 @app.on_event("startup")
 async def on_startup():
     async with database.engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
 
-# ------------------------- API: HardwareSnapshot ------------------------- #
+# --- API: HardwareSnapshot --- #
 
 @app.post("/api/hardware", response_model=schemas.HardwareSnapshotResponse)
 async def post_hardware(hw: schemas.HardwareSnapshotCreate, db: AsyncSession = Depends(database.get_db)):
@@ -102,7 +96,7 @@ async def get_hardware(db: AsyncSession = Depends(database.get_db)):
         })
     return result
 
-# ------------------------- API: PerformanceTelemetry ------------------------- #
+# --- API: PerformanceTelemetry --- #
 
 @app.post("/api/performance", response_model=schemas.PerformanceResponse)
 async def post_performance(perf: schemas.PerformanceCreate, db: AsyncSession = Depends(database.get_db)):
@@ -133,7 +127,7 @@ async def get_performance(db: AsyncSession = Depends(database.get_db)):
         })
     return result
 
-# ------------------------- API: CrashReport ------------------------- #
+# --- API: CrashReport --- #
 
 @app.post("/api/crash", response_model=schemas.CrashReportResponse)
 async def post_crash(cr: schemas.CrashReportCreate, db: AsyncSession = Depends(database.get_db)):
@@ -164,17 +158,13 @@ async def get_crashes(db: AsyncSession = Depends(database.get_db)):
         })
     return result
 
-# ------------------------- Dashboard: отдача HTML ------------------------- #
+# --- Dashboard: отдача HTML --- #
 
 @app.get("/", response_class=HTMLResponse)
 async def get_dashboard(request: Request):
-    """
-    Просто рендерим dashboard.html, в котором уже подключён JS,
-    делающий fetch('/api/...') к нашим эндпоинтам.
-    """
     return templates.TemplateResponse("dashboard.html", {"request": request})
 
-# ------------------------- Запуск Uvicorn ------------------------- #
+# --- Запуск Uvicorn --- #
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=False)

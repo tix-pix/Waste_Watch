@@ -44,7 +44,8 @@ class HardwareSnapshotResponse(BaseModel):
 
     class Config:
         orm_mode = True
-
+    class Config:
+        from_attributes = True
 # --- Схемы для PerformanceTelemetry --- #
 
 class PerformanceCreate(BaseModel):
@@ -65,7 +66,7 @@ class PerformanceResponse(BaseModel):
 
     class Config:
         orm_mode = True
-
+    from_attributes = True
 # --- Схемы для CrashReport --- #
 
 class CrashReportCreate(BaseModel):
@@ -87,3 +88,4 @@ class CrashReportResponse(BaseModel):
 
     class Config:
         orm_mode = True
+    from_attributes = True
