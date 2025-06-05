@@ -186,202 +186,88 @@
     }
 
     /* ---------------- Chart Containers ---------------- */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 30px;
+      margin-bottom: 30px;
+      align-items: start;
+    }
     .chart-container {
       background: #111111;
       border: 1px solid #333;
       border-radius: 12px;
       padding: 25px;
-      margin-bottom: 30px;
+      margin-bottom: 0;
+      min-width: 320px;
+      max-width: 500px;
+      min-height: 350px;
+      max-height: 420px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
     }
-
     .chart-title {
       color: #ffffff;
       font-size: 18px;
       font-weight: 600;
       margin-bottom: 20px;
     }
-
-    /* ------------- Canvas Fixed Height ------------- */
     canvas {
       width: 100% !important;
-      height: 300px !important;
+      max-width: 440px !important;
+      height: 260px !important;
+      max-height: 260px !important;
+      margin: 0 auto;
+      display: block;
     }
-
-    /* ---------------- Секция CPU распределения ---------------- */
+    /* CPU distribution section: график + таблица */
     .cpu-distribution {
       display: flex;
+      flex-wrap: wrap;
       gap: 30px;
       margin-bottom: 40px;
+      justify-content: flex-start;
     }
-
     .cpu-chart-wrapper, .cpu-table-wrapper {
       background: #111111;
       border: 1px solid #333;
       border-radius: 12px;
       padding: 25px;
-      flex: 1;
+      flex: 1 1 320px;
+      min-width: 320px;
+      max-width: 420px;
+      box-sizing: border-box;
     }
-
     .cpu-table-wrapper table {
       width: 100%;
       border-collapse: collapse;
       color: #fff;
     }
-
     .cpu-table-wrapper th, .cpu-table-wrapper td {
       border-bottom: 1px solid #333;
       padding: 8px;
       text-align: left;
       font-size: 14px;
     }
-
     .cpu-table-wrapper th {
       color: #888;
       text-transform: uppercase;
       font-weight: 500;
       font-size: 12px;
     }
-
-    /* ---------------- Список игроков (горизонтальный) ---------------- */
-    .player-list-container {
-      overflow-x: auto;
-      padding-bottom: 10px;
-      margin-bottom: 30px;
-    }
-
-    .player-list {
-      display: flex;
-      gap: 20px;
-    }
-
-    .player-card {
-      background: #111111;
-      border: 1px solid #333;
-      border-radius: 12px;
-      padding: 20px;
-      min-width: 250px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      flex-shrink: 0;
-    }
-
-    .player-card:hover {
-      border-color: #ffffff;
-      transform: translateY(-2px);
-    }
-
-    .player-header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-
-    .player-avatar {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, #ffffff, #cccccc);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #000;
-      font-weight: bold;
-      margin-right: 15px;
-    }
-
-    .player-info h3 {
-      color: #ffffff;
-      font-size: 16px;
-      margin-bottom: 2px;
-    }
-
-    .player-info p {
-      color: #888;
-      font-size: 12px;
-    }
-
-    .player-specs {
-      margin-top: 10px;
-      font-size: 12px;
-      color: #888;
-      line-height: 1.4;
-    }
-
-    /* ---------------- Статистика игрока ---------------- */
-    .player-details {
-      background: #111111;
-      border: 1px solid #333;
-      border-radius: 12px;
-      padding: 25px;
-      margin-bottom: 30px;
-    }
-
-    .player-details h2 {
-      color: #ffffff;
-      font-size: 20px;
-      margin-bottom: 15px;
-    }
-
-    .player-details .section-title {
-      color: #888;
-      font-size: 14px;
-      margin-top: 20px;
-      margin-bottom: 10px;
-    }
-
-    /* ---------------- Список крашей ---------------- */
-    .crash-list {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .crash-item {
-      background: #111111;
-      border: 1px solid #333;
-      border-left: 4px solid #ef4444;
-      border-radius: 8px;
-      padding: 20px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .crash-item:hover {
-      border-color: #ffffff;
-      background: #1a1a1a;
-    }
-
-    .crash-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .crash-type {
-      background: #ef4444;
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .crash-time {
-      color: #666;
-      font-size: 12px;
-    }
-
-    .crash-player {
-      color: #ffffff;
-      font-weight: 500;
-      margin-bottom: 5px;
-    }
-
-    .crash-description {
-      color: #888;
-      font-size: 14px;
-      line-height: 1.4;
+    @media (max-width: 1100px) {
+      .charts-grid, .cpu-distribution {
+        grid-template-columns: 1fr !important;
+        flex-direction: column !important;
+        gap: 20px !important;
+      }
+      .chart-container, .cpu-chart-wrapper, .cpu-table-wrapper {
+        max-width: 100% !important;
+        min-width: 0 !important;
+      }
     }
 
     /* ---------------- Loading Animation ---------------- */
@@ -703,14 +589,26 @@
         `;
         container.insertAdjacentHTML('beforeend', statsHtml);
 
-        // График медианного FPS по дням
+        // --- Графики в сетке ---
+        const chartsGrid = document.createElement('div');
+        chartsGrid.className = 'charts-grid';
+        // FPS median chart
         const chartContainer1 = document.createElement('div');
         chartContainer1.className = 'chart-container';
         chartContainer1.innerHTML = `
           <div class="chart-title">Медианный FPS по дням (последние 7 дней)</div>
           <canvas id="fpsMedianChart"></canvas>
         `;
-        container.append(chartContainer1);
+        chartsGrid.append(chartContainer1);
+        // GPU distribution chart
+        const chartContainer2 = document.createElement('div');
+        chartContainer2.className = 'chart-container';
+        chartContainer2.innerHTML = `
+          <div class="chart-title">Распределение GPU среди игроков</div>
+          <canvas id="gpuDistributionChart"></canvas>
+        `;
+        chartsGrid.append(chartContainer2);
+        container.append(chartsGrid);
 
         const days = [];
         const medPerDay = [];
@@ -757,14 +655,6 @@
         const gpuLabels = Object.keys(gpuCounts);
         const gpuValues = Object.values(gpuCounts);
 
-        const chartContainer2 = document.createElement('div');
-        chartContainer2.className = 'chart-container';
-        chartContainer2.innerHTML = `
-          <div class="chart-title">Распределение GPU среди игроков</div>
-          <canvas id="gpuDistributionChart"></canvas>
-        `;
-        container.append(chartContainer2);
-
         new Chart(document.getElementById('gpuDistributionChart'), {
           type: 'doughnut',
           data: {
@@ -779,21 +669,9 @@
           }
         });
 
-        // Распределение CPU
-        const cpuCounts = {};
-        Object.values(this.grouped.byPlayer).forEach(pData => {
-          if (pData.hardware && pData.hardware.cpu) {
-            const brand = pData.hardware.cpu.brand;
-            cpuCounts[brand] = (cpuCounts[brand] || 0) + 1;
-          }
-        });
-        const cpuLabels = Object.keys(cpuCounts);
-        const cpuValues = Object.values(cpuCounts);
-
-        // Контейнер для диаграммы и таблицы CPU
+        // --- CPU: график + таблица ---
         const cpuWrapper = document.createElement('div');
         cpuWrapper.className = 'cpu-distribution';
-
         // CPU Chart
         const cpuChartDiv = document.createElement('div');
         cpuChartDiv.className = 'cpu-chart-wrapper';
@@ -802,8 +680,7 @@
           <canvas id="cpuDistributionChart"></canvas>
         `;
         cpuWrapper.append(cpuChartDiv);
-
-        // CPU Table
+        // CPU Table (оставляем только одну таблицу)
         const cpuTableDiv = document.createElement('div');
         cpuTableDiv.className = 'cpu-table-wrapper';
         let tableHtml = `
@@ -820,7 +697,6 @@
         tableHtml += `</tbody></table>`;
         cpuTableDiv.innerHTML = tableHtml;
         cpuWrapper.append(cpuTableDiv);
-
         container.append(cpuWrapper);
 
         new Chart(document.getElementById('cpuDistributionChart'), {
