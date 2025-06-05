@@ -1,4 +1,5 @@
 # app/schemas.py
+
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel
@@ -43,9 +44,9 @@ class HardwareSnapshotResponse(BaseModel):
     rhi: str
 
     class Config:
-        orm_mode = True
-    class Config:
-        from_attributes = True
+        model_config = {"from_attributes": True}
+
+
 # --- Схемы для PerformanceTelemetry --- #
 
 class PerformanceCreate(BaseModel):
@@ -65,8 +66,9 @@ class PerformanceResponse(BaseModel):
     snapshot_id: Optional[int] = None
 
     class Config:
-        orm_mode = True
-    from_attributes = True
+        model_config = {"from_attributes": True}
+
+
 # --- Схемы для CrashReport --- #
 
 class CrashReportCreate(BaseModel):
@@ -87,5 +89,4 @@ class CrashReportResponse(BaseModel):
     dumpBase64: Optional[str] = None
 
     class Config:
-        orm_mode = True
-    from_attributes = True
+        model_config = {"from_attributes": True}
