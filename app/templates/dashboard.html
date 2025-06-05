@@ -186,88 +186,179 @@
     }
 
     /* ---------------- Chart Containers ---------------- */
-    .charts-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-      gap: 30px;
-      margin-bottom: 30px;
-      align-items: start;
-    }
     .chart-container {
       background: #111111;
       border: 1px solid #333;
       border-radius: 12px;
       padding: 25px;
-      margin-bottom: 0;
-      min-width: 320px;
-      max-width: 500px;
-      min-height: 350px;
-      max-height: 420px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      justify-content: flex-start;
+      margin-bottom: 30px;
     }
+
     .chart-title {
       color: #ffffff;
       font-size: 18px;
       font-weight: 600;
       margin-bottom: 20px;
     }
+
+    /* ------------- Canvas Fixed Height ------------- */
     canvas {
       width: 100% !important;
-      max-width: 440px !important;
-      height: 260px !important;
-      max-height: 260px !important;
-      margin: 0 auto;
-      display: block;
+      height: 100% !important;
     }
-    /* CPU distribution section: график + таблица */
-    .cpu-distribution {
+
+    /* ---------------- Расположение дифференцированных диаграмм ---------------- */
+    .distribution-row {
       display: flex;
-      flex-wrap: wrap;
-      gap: 30px;
+      gap: 20px;
       margin-bottom: 40px;
-      justify-content: flex-start;
     }
-    .cpu-chart-wrapper, .cpu-table-wrapper {
+
+    .distribution-row .chart-container {
+      flex: 1;
+      padding: 20px;
+    }
+
+    /* ---------------- Список игроков (горизонтальный) ---------------- */
+    .player-list-container {
+      overflow-x: auto;
+      padding-bottom: 10px;
+      margin-bottom: 30px;
+    }
+
+    .player-list {
+      display: flex;
+      gap: 20px;
+    }
+
+    .player-card {
+      background: #111111;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 20px;
+      min-width: 250px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .player-card:hover {
+      border-color: #ffffff;
+      transform: translateY(-2px);
+    }
+
+    .player-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .player-avatar {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #ffffff, #cccccc);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #000;
+      font-weight: bold;
+      margin-right: 15px;
+    }
+
+    .player-info h3 {
+      color: #ffffff;
+      font-size: 16px;
+      margin-bottom: 2px;
+    }
+
+    .player-info p {
+      color: #888;
+      font-size: 12px;
+    }
+
+    .player-specs {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #888;
+      line-height: 1.4;
+    }
+
+    /* ---------------- Статистика игрока ---------------- */
+    .player-details {
       background: #111111;
       border: 1px solid #333;
       border-radius: 12px;
       padding: 25px;
-      flex: 1 1 320px;
-      min-width: 320px;
-      max-width: 420px;
-      box-sizing: border-box;
+      margin-bottom: 30px;
     }
-    .cpu-table-wrapper table {
-      width: 100%;
-      border-collapse: collapse;
-      color: #fff;
+
+    .player-details h2 {
+      color: #ffffff;
+      font-size: 20px;
+      margin-bottom: 15px;
     }
-    .cpu-table-wrapper th, .cpu-table-wrapper td {
-      border-bottom: 1px solid #333;
-      padding: 8px;
-      text-align: left;
-      font-size: 14px;
-    }
-    .cpu-table-wrapper th {
+
+    .player-details .section-title {
       color: #888;
-      text-transform: uppercase;
+      font-size: 14px;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+
+    /* ---------------- Список крашей ---------------- */
+    .crash-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .crash-item {
+      background: #111111;
+      border: 1px solid #333;
+      border-left: 4px solid #ef4444;
+      border-radius: 8px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .crash-item:hover {
+      border-color: #ffffff;
+      background: #1a1a1a;
+    }
+
+    .crash-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .crash-type {
+      background: #ef4444;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
       font-weight: 500;
+    }
+
+    .crash-time {
+      color: #666;
       font-size: 12px;
     }
-    @media (max-width: 1100px) {
-      .charts-grid, .cpu-distribution {
-        grid-template-columns: 1fr !important;
-        flex-direction: column !important;
-        gap: 20px !important;
-      }
-      .chart-container, .cpu-chart-wrapper, .cpu-table-wrapper {
-        max-width: 100% !important;
-        min-width: 0 !important;
-      }
+
+    .crash-player {
+      color: #ffffff;
+      font-weight: 500;
+      margin-bottom: 5px;
+    }
+
+    .crash-description {
+      color: #888;
+      font-size: 14px;
+      line-height: 1.4;
     }
 
     /* ---------------- Loading Animation ---------------- */
@@ -306,6 +397,12 @@
       }
       .nav-icon {
         margin-right: 0;
+      }
+      .distribution-row {
+        flex-direction: column;
+      }
+      .distribution-row .chart-container {
+        width: 100%;
       }
     }
   </style>
@@ -548,7 +645,7 @@
         const fpsLast = avgOf(lastWeek.map(p => p.fps)), fpsPrev = avgOf(prevWeek.map(p => p.fps));
         const cpuLast = avgOf(lastWeek.map(p => p.cpuLoadPercent)), cpuPrev = avgOf(prevWeek.map(p => p.cpuLoadPercent));
         const gpuLast = avgOf(lastWeek.map(p => p.gpuLoadPercent)), gpuPrev = avgOf(prevWeek.map(p => p.gpuLoadPercent));
-        const pctChange = (newV, oldV) => oldV ? (((newV - oldV) / oldV) * 100).toFixed(1) : '0';
+        const pctChange = (newV, oldV) => oldV ? (((newV - oldV)/oldV)*100).toFixed(1) : '0';
 
         const fpsChange = pctChange(fpsLast, fpsPrev);
         const cpuChange = pctChange(cpuLast, cpuPrev);
@@ -589,26 +686,15 @@
         `;
         container.insertAdjacentHTML('beforeend', statsHtml);
 
-        // --- Графики в сетке ---
-        const chartsGrid = document.createElement('div');
-        chartsGrid.className = 'charts-grid';
-        // FPS median chart
-        const chartContainer1 = document.createElement('div');
-        chartContainer1.className = 'chart-container';
-        chartContainer1.innerHTML = `
+        // --- Широкий график: медианный FPS по дням ---
+        const fpsChartWrapper = document.createElement('div');
+        fpsChartWrapper.className = 'chart-container';
+        fpsChartWrapper.style.height = '400px'; /* высота 400px для широкого графика */
+        fpsChartWrapper.innerHTML = `
           <div class="chart-title">Медианный FPS по дням (последние 7 дней)</div>
           <canvas id="fpsMedianChart"></canvas>
         `;
-        chartsGrid.append(chartContainer1);
-        // GPU distribution chart
-        const chartContainer2 = document.createElement('div');
-        chartContainer2.className = 'chart-container';
-        chartContainer2.innerHTML = `
-          <div class="chart-title">Распределение GPU среди игроков</div>
-          <canvas id="gpuDistributionChart"></canvas>
-        `;
-        chartsGrid.append(chartContainer2);
-        container.append(chartsGrid);
+        container.append(fpsChartWrapper);
 
         const days = [];
         const medPerDay = [];
@@ -616,7 +702,10 @@
           const d = new Date(now.getTime() - i * 24 * 3600 * 1000);
           const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
           const end = new Date(start.getTime() + 24 * 3600 * 1000);
-          const arrDay = perfDates.filter(p => p.t >= start && p.t < end).map(p => p.fps).sort((a, b) => a - b);
+          const arrDay = perfDates
+            .filter(p => p.t >= start && p.t < end)
+            .map(p => p.fps)
+            .sort((a, b) => a - b);
           days.push(start.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }));
           medPerDay.push(median(arrDay));
         }
@@ -636,6 +725,7 @@
             }]
           },
           options: {
+            maintainAspectRatio: false,
             scales: {
               x: { ticks: { color: '#ccc' }, grid: { color: 'transparent' } },
               y: { ticks: { color: '#ccc' }, grid: { color: '#333' } }
@@ -643,6 +733,29 @@
             plugins: { legend: { labels: { color: '#eee' } } }
           }
         });
+
+        // --- Две диаграммы в ряд: CPU и GPU ---
+        const distRow = document.createElement('div');
+        distRow.className = 'distribution-row';
+
+        // Распределение CPU
+        const cpuCounts = {};
+        Object.values(this.grouped.byPlayer).forEach(pData => {
+          if (pData.hardware && pData.hardware.cpu) {
+            const brand = pData.hardware.cpu.brand;
+            cpuCounts[brand] = (cpuCounts[brand] || 0) + 1;
+          }
+        });
+        const cpuLabels = Object.keys(cpuCounts);
+        const cpuValues = Object.values(cpuCounts);
+
+        const cpuChartDiv = document.createElement('div');
+        cpuChartDiv.className = 'chart-container';
+        cpuChartDiv.innerHTML = `
+          <div class="chart-title">Распределение CPU среди игроков</div>
+          <canvas id="cpuDistributionChart"></canvas>
+        `;
+        distRow.append(cpuChartDiv);
 
         // Распределение GPU
         const gpuCounts = {};
@@ -655,49 +768,15 @@
         const gpuLabels = Object.keys(gpuCounts);
         const gpuValues = Object.values(gpuCounts);
 
-        new Chart(document.getElementById('gpuDistributionChart'), {
-          type: 'doughnut',
-          data: {
-            labels: gpuLabels,
-            datasets: [{
-              data: gpuValues,
-              backgroundColor: ['#ef4444', '#4ade80', '#3b82f6', '#facc15', '#a855f7', '#f472b6']
-            }]
-          },
-          options: {
-            plugins: { legend: { labels: { color: '#eee' } } }
-          }
-        });
+        const gpuChartDiv = document.createElement('div');
+        gpuChartDiv.className = 'chart-container';
+        gpuChartDiv.innerHTML = `
+          <div class="chart-title">Распределение GPU среди игроков</div>
+          <canvas id="gpuDistributionChart"></canvas>
+        `;
+        distRow.append(gpuChartDiv);
 
-        // --- CPU: график + таблица ---
-        const cpuWrapper = document.createElement('div');
-        cpuWrapper.className = 'cpu-distribution';
-        // CPU Chart
-        const cpuChartDiv = document.createElement('div');
-        cpuChartDiv.className = 'cpu-chart-wrapper';
-        cpuChartDiv.innerHTML = `
-          <div class="chart-title">Распределение CPU среди игроков</div>
-          <canvas id="cpuDistributionChart"></canvas>
-        `;
-        cpuWrapper.append(cpuChartDiv);
-        // CPU Table (оставляем только одну таблицу)
-        const cpuTableDiv = document.createElement('div');
-        cpuTableDiv.className = 'cpu-table-wrapper';
-        let tableHtml = `
-          <div class="chart-title">Таблица распределения CPU</div>
-          <table>
-            <thead>
-              <tr><th>CPU</th><th>Количество игроков</th></tr>
-            </thead>
-            <tbody>
-        `;
-        cpuLabels.forEach((brand, idx) => {
-          tableHtml += `<tr><td>${brand}</td><td>${cpuValues[idx]}</td></tr>`;
-        });
-        tableHtml += `</tbody></table>`;
-        cpuTableDiv.innerHTML = tableHtml;
-        cpuWrapper.append(cpuTableDiv);
-        container.append(cpuWrapper);
+        container.append(distRow);
 
         new Chart(document.getElementById('cpuDistributionChart'), {
           type: 'pie',
@@ -709,6 +788,22 @@
             }]
           },
           options: {
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#eee' } } }
+          }
+        });
+
+        new Chart(document.getElementById('gpuDistributionChart'), {
+          type: 'pie',
+          data: {
+            labels: gpuLabels,
+            datasets: [{
+              data: gpuValues,
+              backgroundColor: ['#ef4444', '#4ade80', '#3b82f6', '#facc15', '#a855f7']
+            }]
+          },
+          options: {
+            maintainAspectRatio: false,
             plugins: { legend: { labels: { color: '#eee' } } }
           }
         });
@@ -820,7 +915,9 @@
           chartSection.className = 'player-details';
           chartSection.innerHTML = `
             <div class="section-title">Производительность во времени</div>
-            <canvas id="playerPerfChart"></canvas>
+            <div class="chart-container" style="height: 300px;">
+              <canvas id="playerPerfChart"></canvas>
+            </div>
           `;
           container.append(chartSection);
 
@@ -864,6 +961,7 @@
               ]
             },
             options: {
+              maintainAspectRatio: false,
               scales: {
                 x: { ticks: { color: '#ccc' }, grid: { color: 'transparent' } },
                 y1: {
